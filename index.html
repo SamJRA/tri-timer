@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tri Timer</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --text: #f0f0f0;
+    --muted: #777;
+    --accent: #e8f55a;
+    --accent-dark: #b8c430;
+    --swim: #5ab4f5;
+    --bike: #f5a623;
+    --run: #6bcf7f;
+    --danger: #f55a5a;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; min-height: 100vh; }
+
+  /* HEADER */
+  header { padding: 16px 16px 0; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 18px; font-weight: bold; letter-spacing: 0.1em; color: var(--accent); }
+  .logo span { color: var(--muted); font-weight: normal; }
+  #race-clock { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* SCREENS */
+  .screen { display: none; padding: 16px; }
+  .screen.active { display: block; }
+
+  /* SETUP SCREEN */
+  .section-label { font-size: 11px; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+  .input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  input[type="text"] {
+    flex: 1; background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    font-family: inherit; font-size: 15px; padding: 12px 14px; border-radius: var(--radius-sm);
+    outline: none; -webkit-appearance: none;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  .btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    font-family: inherit; font-size: 14px; padding: 12px 16px; border-radius: var(--radius-sm);
+    cursor: pointer; white-space: nowrap; transition: background 0.15s;
+    -webkit-appearance: none; touch-action: manipulation;
+  }
+  .btn:active { background: var(--border); }
+  .btn-accent {
+    background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold;
+    letter-spacing: 0.05em;
+  }
+  .btn-accent:active { background: var(--accent-dark); border-color: var(--accent-dark); }
+  .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .btn-danger:active { background: #c43c3c; }
+
+  .athlete-list { margin-bottom: 16px; }
+  .athlete-chip {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 10px 14px; margin-bottom: 8px; font-size: 14px;
+  }
+  .chip-remove { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 4px; font-family: inherit; }
+  .chip-remove:active { color: var(--danger); }
+
+  .config-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; }
+  .config-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+  .config-row + .config-row { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .toggle { position: relative; width: 44px; height: 24px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: var(--border); border-radius: 24px; cursor: pointer; transition: 0.2s;
+  }
+  .toggle-slider:before {
+    content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px;
+    background: var(--muted); border-radius: 50%; transition: 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider:before { background: #000; transform: translateX(20px); }
+
+  /* RACE SESSION SELECTOR */
+  .session-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .session-card:active { border-color: var(--accent); }
+  .session-name { font-size: 15px; font-weight: bold; margin-bottom: 4px; }
+  .session-meta { font-size: 12px; color: var(--muted); }
+
+  /* RACE SCREEN */
+  #mass-start-bar {
+    background: var(--accent); color: #000; border-radius: var(--radius); padding: 14px;
+    text-align: center; font-weight: bold; font-size: 16px; letter-spacing: 0.08em;
+    cursor: pointer; margin-bottom: 16px; touch-action: manipulation;
+    transition: background 0.15s;
+  }
+  #mass-start-bar:active { background: var(--accent-dark); }
+  #mass-start-bar.done { background: var(--surface); color: var(--muted); border: 1px solid var(--border); cursor: default; font-size: 13px; }
+
+  .athlete-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+  }
+  .athlete-name { font-size: 16px; font-weight: bold; letter-spacing: 0.03em; }
+  .athlete-status { font-size: 11px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+  .athlete-status.swim { color: var(--swim); }
+  .athlete-status.t1 { color: var(--accent); }
+  .athlete-status.bike { color: var(--bike); }
+  .athlete-status.t2 { color: var(--accent); }
+  .athlete-status.run { color: var(--run); }
+  .athlete-status.done { color: var(--muted); }
+
+  .splits-row {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
+    background: var(--border); border-bottom: 1px solid var(--border);
+  }
+  .split-cell {
+    background: var(--surface); padding: 8px 6px; text-align: center;
+  }
+  .split-label { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .split-time { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .split-time.active-split { color: var(--text); }
+  .split-time.swim-done { color: var(--swim); }
+  .split-time.t1-done { color: var(--accent); }
+  .split-time.bike-done { color: var(--bike); }
+  .split-time.t2-done { color: var(--accent); }
+  .split-time.run-done { color: var(--run); }
+
+  .card-action { padding: 10px 12px; display: flex; gap: 8px; }
+  .btn-next {
+    flex: 1; padding: 13px; font-family: inherit; font-size: 14px; font-weight: bold;
+    border-radius: var(--radius-sm); border: none; cursor: pointer; letter-spacing: 0.05em;
+    touch-action: manipulation; transition: opacity 0.15s;
+  }
+  .btn-next:active { opacity: 0.75; }
+  .btn-next.swim { background: var(--swim); color: #000; }
+  .btn-next.t1 { background: var(--accent); color: #000; }
+  .btn-next.bike { background: var(--bike); color: #000; }
+  .btn-next.t2 { background: var(--accent); color: #000; }
+  .btn-next.run { background: var(--run); color: #000; }
+  .btn-next.done-state { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); cursor: default; }
+  .btn-edit-small {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+    font-family: inherit; font-size: 12px; padding: 13px 12px; border-radius: var(--radius-sm);
+    cursor: pointer; white-space: nowrap; touch-action: manipulation;
+  }
+  .btn-edit-small:active { border-color: var(--text); color: var(--text); }
+
+  /* RESULTS SCREEN */
+  .results-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .results-table th { color: var(--muted); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 6px; border-bottom: 1px solid var(--border); text-align: left; }
+  .results-table td { padding: 10px 6px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  .results-table tr:last-child td { border-bottom: none; }
+  .rank-1 { color: var(--accent); font-weight: bold; }
+  .rank-2 { color: var(--swim); }
+  .rank-3 { color: var(--bike); }
+
+  /* MODAL */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 100; align-items: flex-end; padding: 0;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%; padding: 20px 16px 32px; border-top: 1px solid var(--border);
+  }
+  .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  .edit-row { margin-bottom: 14px; }
+  .edit-label { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+  .edit-input-row { display: flex; gap: 8px; align-items: center; }
+  input[type="time"], input[type="date"] {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    font-family: inherit; font-size: 15px; padding: 10px 12px; border-radius: var(--radius-sm);
+    outline: none; -webkit-appearance: none; width: 100%;
+  }
+  input[type="time"]:focus, input[type="date"]:focus { border-color: var(--accent); }
+  .edit-clear { background: none; border: 1px solid var(--border); color: var(--muted); font-family: inherit; font-size: 12px; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+  /* NAV */
+  nav {
+    position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--border);
+    display: flex; padding: 8px 0 12px;
+  }
+  .nav-btn {
+    flex: 1; background: none; border: none; color: var(--muted); font-family: inherit;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+    padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    touch-action: manipulation;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-icon { font-size: 18px; }
+
+  .firebase-note { font-size: 11px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 16px; line-height: 1.5; }
+  .firebase-note a { color: var(--accent); }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .empty-state { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+
+  .confirm-dialog {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+    z-index: 200; align-items: center; justify-content: center; padding: 16px;
+  }
+  .confirm-dialog.open { display: flex; }
+  .confirm-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; max-width: 320px; width: 100%; }
+  .confirm-title { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
+  .confirm-msg { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+  .confirm-actions { display: flex; gap: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">TRI<span>/</span>TIMER</div>
+  <div id="race-clock">--:--:--</div>
+</header>
+
+<!-- SETUP SCREEN -->
+<div id="screen-setup" class="screen active">
+  <div class="section-label" style="margin-top:16px">Firebase config</div>
+  <div class="firebase-note">
+    Paste your Firebase project config below. Get it from <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Project Settings → Your apps → SDK setup → Config object. Only fill this once — it's saved locally.
+  </div>
+  <div id="firebase-config-area">
+    <textarea id="fb-config-input" placeholder='Paste full firebaseConfig = { apiKey: "...", ... } or just the JSON object' style="width:100%;height:90px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:monospace;font-size:12px;padding:10px;border-radius:var(--radius-sm);outline:none;resize:none;margin-bottom:8px;"></textarea>
+    <button class="btn btn-accent" style="width:100%" onclick="saveFirebaseConfig()">Save Firebase Config</button>
+  </div>
+  <div id="firebase-status" style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center;"></div>
+
+  <hr class="divider">
+  <div class="section-label">New race session</div>
+  <div class="input-row">
+    <input type="text" id="session-name-input" placeholder="Race name (e.g. Backyard Tri 2025)" />
+  </div>
+
+  <div class="config-section">
+    <div class="config-row">
+      <span>Track T1 &amp; T2 transitions separately</span>
+      <label class="toggle"><input type="checkbox" id="toggle-transitions" checked><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+
+  <div class="section-label">Athletes</div>
+  <div class="input-row">
+    <input type="text" id="athlete-input" placeholder="Athlete name" onkeydown="if(event.key==='Enter')addAthlete()" />
+    <button class="btn" onclick="addAthlete()">Add</button>
+  </div>
+  <div class="athlete-list" id="athlete-list"></div>
+
+  <button class="btn btn-accent" style="width:100%;font-size:16px;padding:16px" onclick="createSession()">Create Race Session →</button>
+
+  <hr class="divider">
+  <div class="section-label">Saved sessions</div>
+  <div id="saved-sessions"><div class="empty-state">No sessions yet</div></div>
+</div>
+
+<!-- RACE SCREEN -->
+<div id="screen-race" class="screen">
+  <div id="mass-start-bar" onclick="massStart()">⬤ MASS START SWIM</div>
+  <div id="athlete-cards"></div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="screen-results" class="screen">
+  <div class="section-label" style="margin-top:4px" id="results-session-label">Results</div>
+  <div id="results-content"><div class="empty-state">No results yet</div></div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title" id="edit-modal-title">Edit times</div>
+    <div class="modal-sub" id="edit-modal-sub">Adjust logged timestamps</div>
+    <div id="edit-fields"></div>
+    <div class="modal-actions">
+      <button class="btn" style="flex:1" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-accent" style="flex:1" onclick="saveEditModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-dialog" id="confirm-dialog">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title"></div>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="confirm-actions">
+      <button class="btn" style="flex:1" onclick="confirmCancel()">Cancel</button>
+      <button class="btn btn-danger" style="flex:1" id="confirm-ok-btn" onclick="confirmOk()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <button class="nav-btn" onclick="showScreen('setup')" id="nav-setup">
+    <span class="nav-icon">⚙</span>Setup
+  </button>
+  <button class="nav-btn active" onclick="showScreen('race')" id="nav-race">
+    <span class="nav-icon">⏱</span>Race
+  </button>
+  <button class="nav-btn" onclick="showScreen('results')" id="nav-results">
+    <span class="nav-icon">🏆</span>Results
+  </button>
+</nav>
+
+<!-- Firebase SDKs -->
+<script type="module">
+// ─── Firebase dynamic import ───────────────────────────────────────────────
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ─── App State ─────────────────────────────────────────────────────────────
+let db = null;
+let currentSession = null; // { id, name, transitions, athletes, startTime }
+let unsubscribe = null;
+let athleteData = {}; // { athleteId: { name, timestamps: {swimStart, swimEnd, bikeEnd, runEnd} } }
+let confirmCallback = null;
+let editingAthlete = null;
+let clockInterval = null;
+let raceStartTime = null;
+
+const SEGMENTS = ['swimStart', 'swimEnd', 'bikeEnd', 'runEnd'];
+const SEGMENTS_FULL = ['swimStart', 'swimEnd', 'bikeDep', 'bikeEnd', 'runEnd'];
+
+// ─── Firebase Init ─────────────────────────────────────────────────────────
+window.saveFirebaseConfig = function() {
+  const raw = document.getElementById('fb-config-input').value.trim();
+  let config = null;
+  try {
+    // Try to extract JSON from the config object
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) config = JSON.parse(jsonMatch[0]);
+  } catch(e) {}
+  if (!config || !config.apiKey) {
+    setStatus('Could not parse config. Make sure you paste the full config object.', 'var(--danger)');
+    return;
+  }
+  localStorage.setItem('tri_fb_config', JSON.stringify(config));
+  initFirebase(config);
+};
+
+function initFirebase(config) {
+  try {
+    const app = initializeApp(config, 'tri-timer-' + Date.now());
+    db = getFirestore(app);
+    setStatus('✓ Firebase connected', 'var(--run)');
+    document.getElementById('firebase-config-area').style.opacity = '0.5';
+    loadSavedSessions();
+  } catch(e) {
+    setStatus('Firebase error: ' + e.message, 'var(--danger)');
+  }
+}
+
+function setStatus(msg, color) {
+  const el = document.getElementById('firebase-status');
+  el.textContent = msg;
+  el.style.color = color || 'var(--muted)';
+}
+
+// Auto-init from saved config
+const savedConfig = localStorage.getItem('tri_fb_config');
+if (savedConfig) {
+  try {
+    const c = JSON.parse(savedConfig);
+    document.getElementById('fb-config-input').value = JSON.stringify(c, null, 2);
+    initFirebase(c);
+  } catch(e) {}
+}
+
+// ─── Setup Screen ──────────────────────────────────────────────────────────
+let pendingAthletes = [];
+
+window.addAthlete = function() {
+  const inp = document.getElementById('athlete-input');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (pendingAthletes.includes(name)) { inp.value = ''; return; }
+  pendingAthletes.push(name);
+  inp.value = '';
+  renderAthleteList();
+};
+
+window.removeAthlete = function(name) {
+  pendingAthletes = pendingAthletes.filter(n => n !== name);
+  renderAthleteList();
+};
+
+function renderAthleteList() {
+  const el = document.getElementById('athlete-list');
+  el.innerHTML = pendingAthletes.map(n => `
+    <div class="athlete-chip">
+      <span>${n}</span>
+      <button class="chip-remove" onclick="removeAthlete('${n.replace(/'/g,"\\'")}')">×</button>
+    </div>
+  `).join('');
+}
+
+window.createSession = function() {
+  if (!db) { alert('Connect Firebase first.'); return; }
+  const name = document.getElementById('session-name-input').value.trim() || 'Tri Race';
+  if (pendingAthletes.length === 0) { alert('Add at least one athlete.'); return; }
+  const transitions = document.getElementById('toggle-transitions').checked;
+  const id = 'race_' + Date.now();
+  const session = { id, name, transitions, createdAt: Date.now(), athletes: [...pendingAthletes] };
+  setDoc(doc(db, 'sessions', id), session).then(() => {
+    loadSession(session);
+    pendingAthletes = [];
+    renderAthleteList();
+    document.getElementById('session-name-input').value = '';
+  }).catch(e => alert('Error saving session: ' + e.message));
+};
+
+async function loadSavedSessions() {
+  if (!db) return;
+  const snap = await getDocs(collection(db, 'sessions'));
+  const sessions = [];
+  snap.forEach(d => sessions.push(d.data()));
+  sessions.sort((a, b) => b.createdAt - a.createdAt);
+  const el = document.getElementById('saved-sessions');
+  if (sessions.length === 0) { el.innerHTML = '<div class="empty-state">No sessions yet</div>'; return; }
+  el.innerHTML = sessions.map(s => `
+    <div class="session-card" onclick="loadSessionById('${s.id}')">
+      <div class="session-name">${s.name}</div>
+      <div class="session-meta">${s.athletes.length} athletes · ${new Date(s.createdAt).toLocaleDateString()} · ${s.transitions ? '5 segments' : '3 segments'}</div>
+    </div>
+  `).join('');
+}
+
+window.loadSessionById = async function(id) {
+  if (!db) return;
+  const snap = await getDoc(doc(db, 'sessions', id));
+  if (snap.exists()) loadSession(snap.data());
+};
+
+function loadSession(session) {
+  currentSession = session;
+  if (unsubscribe) unsubscribe();
+  athleteData = {};
+  session.athletes.forEach(name => {
+    const aid = slugify(name);
+    athleteData[aid] = { name, timestamps: {} };
+  });
+
+  // Subscribe to live updates
+  unsubscribe = onSnapshot(collection(db, 'sessions', session.id, 'athletes'), snap => {
+    snap.forEach(d => {
+      const data = d.data();
+      if (athleteData[d.id]) athleteData[d.id].timestamps = data.timestamps || {};
+    });
+    renderRaceScreen();
+    renderResults();
+  });
+
+  renderRaceScreen();
+  showScreen('race');
+}
+
+// ─── Race Screen ───────────────────────────────────────────────────────────
+function renderRaceScreen() {
+  if (!currentSession) return;
+  const ts = athleteData;
+
+  // Mass start bar
+  const msBar = document.getElementById('mass-start-bar');
+  const anyStarted = Object.values(ts).some(a => a.timestamps.swimStart);
+  if (anyStarted) {
+    const t = Object.values(ts).find(a => a.timestamps.swimStart)?.timestamps.swimStart;
+    raceStartTime = t;
+    msBar.className = 'done';
+    msBar.textContent = '⬤ Race started · ' + fmtAbsolute(t);
+    startClock();
+  } else {
+    msBar.className = '';
+    msBar.textContent = '⬤ MASS START SWIM';
+    raceStartTime = null;
+  }
+
+  const container = document.getElementById('athlete-cards');
+  const segs = currentSession.transitions
+    ? ['SWIM', 'T1', 'BIKE', 'T2', 'RUN']
+    : ['SWIM', '–', 'BIKE', '–', 'RUN'];
+
+  container.innerHTML = currentSession.athletes.map(name => {
+    const aid = slugify(name);
+    const stamps = ts[aid]?.timestamps || {};
+    const status = getStatus(stamps);
+    const splits = computeSplits(stamps, currentSession.transitions);
+    const nextBtn = getNextBtn(status, stamps, currentSession.transitions);
+
+    const splitCells = segs.map((seg, i) => {
+      const keys = ['swimEnd', 'bikeDep', 'bikeEnd', 'runEnd']; // used for coloring
+      const splitVal = splits[i];
+      let cls = 'split-time';
+      if (splitVal) {
+        const doneClasses = ['swim-done', 't1-done', 'bike-done', 't2-done', 'run-done'];
+        cls += ' ' + doneClasses[i];
+      } else if (isActiveSegment(status, i)) {
+        cls += ' active-split';
+      }
+      return `<div class="split-cell">
+        <div class="split-label">${seg}</div>
+        <div class="${cls}">${splitVal || (isActiveSegment(status, i) ? '...' : '--')}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="athlete-card">
+      <div class="card-header">
+        <div class="athlete-name">${name}</div>
+        <div class="athlete-status ${status}">${status.toUpperCase()}</div>
+      </div>
+      <div class="splits-row">${splitCells}</div>
+      <div class="card-action">
+        ${nextBtn ? `<button class="btn-next ${nextBtn.cls}" onclick="logNext('${aid}')">${nextBtn.label}</button>` : `<button class="btn-next done-state" disabled>FINISHED</button>`}
+        <button class="btn-edit-small" onclick="openEditModal('${aid}')">EDIT</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function isActiveSegment(status, idx) {
+  const map = { swim: 0, t1: 1, bike: 2, t2: 3, run: 4 };
+  return map[status] === idx;
+}
+
+function getStatus(stamps) {
+  if (!stamps.swimStart) return 'waiting';
+  if (!stamps.swimEnd) return 'swim';
+  if (!stamps.bikeDep) return 't1';
+  if (!stamps.bikeEnd) return 'bike';
+  if (!stamps.runEnd) return 't2'; // only if using transitions. otherwise skip
+  return 'done';
+}
+
+function getStatusNoT(stamps) {
+  if (!stamps.swimStart) return 'waiting';
+  if (!stamps.swimEnd) return 'swim';
+  if (!stamps.bikeEnd) return 'bike';
+  if (!stamps.runEnd) return 'run';
+  return 'done';
+}
+
+function getStatus(stamps) {
+  if (!currentSession) return 'waiting';
+  if (!stamps.swimStart) return 'waiting';
+  if (!stamps.swimEnd) return 'swim';
+  if (currentSession.transitions) {
+    if (!stamps.bikeDep) return 't1';
+    if (!stamps.bikeEnd) return 'bike';
+    if (!stamps.runEnd) return 't2';
+    return 'done';
+  } else {
+    if (!stamps.bikeEnd) return 'bike';
+    if (!stamps.runEnd) return 'run';
+    return 'done';
+  }
+}
+
+function getNextBtn(status, stamps, transitions) {
+  if (status === 'waiting') return null; // waiting for mass start
+  if (status === 'swim') return { label: 'DONE SWIMMING →', cls: 'swim' };
+  if (status === 't1') return { label: 'BIKE DEPARTURE →', cls: 't1' };
+  if (status === 'bike') return { label: 'DONE BIKING →', cls: 'bike' };
+  if (status === 't2') return { label: 'RUN DEPARTURE →', cls: 't2' };
+  if (status === 'run') return { label: 'DONE RUNNING ✓', cls: 'run' };
+  return null;
+}
+
+window.logNext = function(aid) {
+  if (!currentSession) return;
+  const stamps = { ...athleteData[aid]?.timestamps };
+  const status = getStatus(stamps);
+  const now = Date.now();
+  if (status === 'swim') stamps.swimEnd = now;
+  else if (status === 't1') stamps.bikeDep = now;
+  else if (status === 'bike') stamps.bikeEnd = now;
+  else if (status === 't2') stamps.runEnd = now;
+  else if (status === 'run') stamps.runEnd = now;
+  else return;
+
+  if (!athleteData[aid]) athleteData[aid] = { name: aid, timestamps: {} };
+  athleteData[aid].timestamps = stamps;
+  setDoc(doc(db, 'sessions', currentSession.id, 'athletes', aid), { timestamps: stamps });
+  renderRaceScreen();
+};
+
+window.massStart = function() {
+  if (!currentSession) return;
+  const anyStarted = Object.values(athleteData).some(a => a.timestamps.swimStart);
+  if (anyStarted) return;
+
+  showConfirm('Mass start swim?', 'This will set the swim start time for all athletes to right now.', () => {
+    const now = Date.now();
+    currentSession.athletes.forEach(name => {
+      const aid = slugify(name);
+      if (!athleteData[aid]) athleteData[aid] = { name, timestamps: {} };
+      athleteData[aid].timestamps = { ...athleteData[aid].timestamps, swimStart: now };
+      setDoc(doc(db, 'sessions', currentSession.id, 'athletes', aid), { timestamps: athleteData[aid].timestamps });
+    });
+    raceStartTime = now;
+    startClock();
+    renderRaceScreen();
+  });
+};
+
+function computeSplits(stamps, transitions) {
+  const fmt = (ms) => ms ? fmtDuration(ms) : null;
+  if (transitions) {
+    return [
+      stamps.swimStart && stamps.swimEnd ? fmt(stamps.swimEnd - stamps.swimStart) : null,
+      stamps.swimEnd && stamps.bikeDep ? fmt(stamps.bikeDep - stamps.swimEnd) : null,
+      stamps.bikeDep && stamps.bikeEnd ? fmt(stamps.bikeEnd - stamps.bikeDep) : null,
+      stamps.bikeEnd && stamps.runEnd ? fmt(stamps.runEnd - stamps.bikeEnd) : null, // wait, this isn't right - need separate t2 departure
+      stamps.runEnd ? fmt(stamps.runEnd - (stamps.bikeEnd || stamps.bikeDep)) : null,
+    ];
+  } else {
+    return [
+      stamps.swimStart && stamps.swimEnd ? fmt(stamps.swimEnd - stamps.swimStart) : null,
+      null,
+      stamps.swimEnd && stamps.bikeEnd ? fmt(stamps.bikeEnd - stamps.swimEnd) : null,
+      null,
+      stamps.bikeEnd && stamps.runEnd ? fmt(stamps.runEnd - stamps.bikeEnd) : null,
+    ];
+  }
+}
+
+function computeSplits(stamps, transitions) {
+  const fmt = (ms) => ms ? fmtDuration(ms) : null;
+  if (transitions) {
+    const runStart = stamps.runDep || stamps.bikeEnd; // runDep not used, bikeEnd marks end of bike
+    return [
+      stamps.swimStart && stamps.swimEnd ? fmt(stamps.swimEnd - stamps.swimStart) : null,
+      stamps.swimEnd && stamps.bikeDep ? fmt(stamps.bikeDep - stamps.swimEnd) : null,
+      stamps.bikeDep && stamps.bikeEnd ? fmt(stamps.bikeEnd - stamps.bikeDep) : null,
+      stamps.bikeEnd && stamps.runEnd ? null : null, // t2 needs a separate departure tap
+      stamps.bikeEnd && stamps.runEnd ? null : null,
+    ];
+  }
+  return [];
+}
+
+// Cleaner approach — single source of truth for splits
+function getSplits(stamps, transitions) {
+  const d = (a, b) => (a && b) ? fmtDuration(b - a) : null;
+  if (transitions) {
+    // 5 cols: Swim | T1 | Bike | T2 | Run
+    // swimStart→swimEnd, swimEnd→bikeDep, bikeDep→bikeEnd, bikeEnd→runDep, runDep→runEnd
+    // We use bikeEnd as both "bike done" and "start of T2" then runEnd as run done
+    // For T2 we need a runDep timestamp. Let's use a 6th stamp: runDep
+    return [
+      d(stamps.swimStart, stamps.swimEnd),
+      d(stamps.swimEnd, stamps.bikeDep),
+      d(stamps.bikeDep, stamps.bikeEnd),
+      d(stamps.bikeEnd, stamps.runDep),
+      d(stamps.runDep, stamps.runEnd),
+    ];
+  } else {
+    // 3 meaningful cols, show swim, bike (inc T1), run (inc T2)
+    return [
+      d(stamps.swimStart, stamps.swimEnd),
+      null,
+      d(stamps.swimEnd, stamps.bikeEnd),
+      null,
+      d(stamps.bikeEnd, stamps.runEnd),
+    ];
+  }
+}
+
+// Recompute status for transitions=true properly
+function getStatus(stamps) {
+  if (!currentSession) return 'waiting';
+  if (!stamps.swimStart) return 'waiting';
+  if (!stamps.swimEnd) return 'swim';
+  if (currentSession.transitions) {
+    if (!stamps.bikeDep) return 't1';
+    if (!stamps.bikeEnd) return 'bike';
+    if (!stamps.runDep) return 't2';
+    if (!stamps.runEnd) return 'run';
+    return 'done';
+  } else {
+    if (!stamps.bikeEnd) return 'bike';
+    if (!stamps.runEnd) return 'run';
+    return 'done';
+  }
+}
+
+function getNextBtn(status) {
+  const map = {
+    swim: { label: 'DONE SWIMMING →', cls: 'swim' },
+    t1:   { label: 'BIKE DEPARTURE →', cls: 't1' },
+    bike: { label: 'DONE BIKING →',    cls: 'bike' },
+    t2:   { label: 'RUN DEPARTURE →',  cls: 't2' },
+    run:  { label: 'DONE RUNNING ✓',   cls: 'run' },
+  };
+  return map[status] || null;
+}
+
+window.logNext = function(aid) {
+  if (!currentSession) return;
+  const stamps = { ...athleteData[aid]?.timestamps };
+  const status = getStatus(stamps);
+  const now = Date.now();
+  const nextStamp = { swim: 'swimEnd', t1: 'bikeDep', bike: 'bikeEnd', t2: 'runDep', run: 'runEnd' };
+  const key = nextStamp[status];
+  if (!key) return;
+  stamps[key] = now;
+  athleteData[aid].timestamps = stamps;
+  setDoc(doc(db, 'sessions', currentSession.id, 'athletes', aid), { timestamps: stamps });
+};
+
+function renderRaceScreen() {
+  if (!currentSession) return;
+  const msBar = document.getElementById('mass-start-bar');
+  const anyStarted = Object.values(athleteData).some(a => a.timestamps.swimStart);
+  if (anyStarted) {
+    const t = Object.values(athleteData).find(a => a.timestamps.swimStart)?.timestamps.swimStart;
+    raceStartTime = t;
+    msBar.className = 'done';
+    msBar.textContent = '⬤ Race started · ' + fmtAbsolute(t);
+    startClock();
+  } else {
+    raceStartTime = null;
+    msBar.className = '';
+    msBar.textContent = '⬤ MASS START SWIM';
+  }
+
+  const segs = currentSession.transitions
+    ? ['SWIM', 'T1', 'BIKE', 'T2', 'RUN']
+    : ['SWIM', '–', 'BIKE', '–', 'RUN'];
+
+  const doneClasses = ['swim-done', 't1-done', 'bike-done', 't2-done', 'run-done'];
+
+  document.getElementById('athlete-cards').innerHTML = currentSession.athletes.map(name => {
+    const aid = slugify(name);
+    const stamps = athleteData[aid]?.timestamps || {};
+    const status = getStatus(stamps);
+    const splits = getSplits(stamps, currentSession.transitions);
+    const nextBtn = getNextBtn(status);
+
+    const splitCells = segs.map((seg, i) => {
+      const val = splits[i];
+      let cls = 'split-time';
+      if (val) cls += ' ' + doneClasses[i];
+      else if (isActiveSegment(status, i)) cls += ' active-split';
+      return `<div class="split-cell"><div class="split-label">${seg}</div><div class="${cls}">${val || (isActiveSegment(status, i) ? '···' : '–')}</div></div>`;
+    }).join('');
+
+    return `<div class="athlete-card">
+      <div class="card-header">
+        <div class="athlete-name">${name}</div>
+        <div class="athlete-status ${status}">${status === 'waiting' ? 'WAITING' : status.toUpperCase()}</div>
+      </div>
+      <div class="splits-row">${splitCells}</div>
+      <div class="card-action">
+        ${nextBtn
+          ? `<button class="btn-next ${nextBtn.cls}" onclick="logNext('${aid}')">${nextBtn.label}</button>`
+          : `<button class="btn-next done-state" disabled>${status === 'waiting' ? 'AWAITING START' : '✓ FINISHED'}</button>`}
+        <button class="btn-edit-small" onclick="openEditModal('${aid}')">EDIT</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function isActiveSegment(status, idx) {
+  const map = { swim: 0, t1: 1, bike: 2, t2: 3, run: 4 };
+  return map[status] === idx;
+}
+
+// ─── Results Screen ────────────────────────────────────────────────────────
+function renderResults() {
+  if (!currentSession) return;
+  document.getElementById('results-session-label').textContent = currentSession.name + ' — Results';
+
+  const rows = currentSession.athletes.map(name => {
+    const aid = slugify(name);
+    const stamps = athleteData[aid]?.timestamps || {};
+    const splits = getSplits(stamps, currentSession.transitions);
+    const total = (stamps.swimStart && stamps.runEnd)
+      ? fmtDuration(stamps.runEnd - stamps.swimStart) : null;
+    return { name, splits, total, totalMs: stamps.runEnd ? stamps.runEnd - stamps.swimStart : Infinity };
+  }).sort((a, b) => a.totalMs - b.totalMs);
+
+  if (rows.every(r => !r.total)) {
+    document.getElementById('results-content').innerHTML = '<div class="empty-state">Results will appear as athletes finish</div>';
+    return;
+  }
+
+  const segs = currentSession.transitions
+    ? ['Swim', 'T1', 'Bike', 'T2', 'Run', 'Total']
+    : ['Swim', 'Bike (+T1)', 'Run (+T2)', 'Total'];
+
+  const headers = ['#', 'Athlete', ...segs].map(h => `<th>${h}</th>`).join('');
+  const trows = rows.map((r, i) => {
+    const rankCls = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+    let cells;
+    if (currentSession.transitions) {
+      cells = [...r.splits, r.total].map(v => `<td>${v || '–'}</td>`).join('');
+    } else {
+      cells = [r.splits[0], r.splits[2], r.splits[4], r.total].map(v => `<td>${v || '–'}</td>`).join('');
+    }
+    return `<tr><td class="${rankCls}">${r.total ? i+1 : '–'}</td><td class="${rankCls}">${r.name}</td>${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('results-content').innerHTML = `
+    <div style="overflow-x:auto">
+      <table class="results-table"><thead><tr>${headers}</tr></thead><tbody>${trows}</tbody></table>
+    </div>`;
+}
+
+// ─── Edit Modal ────────────────────────────────────────────────────────────
+window.openEditModal = function(aid) {
+  editingAthlete = aid;
+  const stamps = athleteData[aid]?.timestamps || {};
+  const name = athleteData[aid]?.name || aid;
+  document.getElementById('edit-modal-title').textContent = name;
+  document.getElementById('edit-modal-sub').textContent = 'Edit or clear any timestamp';
+
+  const allStamps = currentSession?.transitions
+    ? [
+        { key: 'swimStart', label: 'Swim Start' },
+        { key: 'swimEnd',   label: 'Swim End / T1 Start' },
+        { key: 'bikeDep',   label: 'Bike Departure / T1 End' },
+        { key: 'bikeEnd',   label: 'Bike End / T2 Start' },
+        { key: 'runDep',    label: 'Run Departure / T2 End' },
+        { key: 'runEnd',    label: 'Run End (Finish)' },
+      ]
+    : [
+        { key: 'swimStart', label: 'Swim Start' },
+        { key: 'swimEnd',   label: 'Swim End' },
+        { key: 'bikeEnd',   label: 'Bike End (incl. T1)' },
+        { key: 'runEnd',    label: 'Run End / Finish (incl. T2)' },
+      ];
+
+  document.getElementById('edit-fields').innerHTML = allStamps.map(({ key, label }) => {
+    const val = stamps[key];
+    const timeStr = val ? msToTimeInput(val) : '';
+    const dateStr = val ? msToDateInput(val) : '';
+    return `<div class="edit-row">
+      <div class="edit-label">${label}</div>
+      <div class="edit-input-row">
+        <input type="date" id="edit-date-${key}" value="${dateStr}" style="width:140px;flex-shrink:0" />
+        <input type="time" id="edit-time-${key}" value="${timeStr}" step="1" />
+        <button class="edit-clear" onclick="clearEditField('${key}')">Clear</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('edit-modal').classList.add('open');
+};
+
+window.clearEditField = function(key) {
+  document.getElementById('edit-time-' + key).value = '';
+  document.getElementById('edit-date-' + key).value = '';
+};
+
+window.closeEditModal = function() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editingAthlete = null;
+};
+
+window.saveEditModal = function() {
+  if (!editingAthlete || !currentSession) return;
+  const stamps = { ...athleteData[editingAthlete]?.timestamps };
+  const allKeys = currentSession.transitions
+    ? ['swimStart', 'swimEnd', 'bikeDep', 'bikeEnd', 'runDep', 'runEnd']
+    : ['swimStart', 'swimEnd', 'bikeEnd', 'runEnd'];
+
+  allKeys.forEach(key => {
+    const timeEl = document.getElementById('edit-time-' + key);
+    const dateEl = document.getElementById('edit-date-' + key);
+    if (!timeEl) return;
+    const timeVal = timeEl.value;
+    const dateVal = dateEl.value;
+    if (timeVal && dateVal) {
+      stamps[key] = new Date(dateVal + 'T' + timeVal).getTime();
+    } else if (!timeVal) {
+      delete stamps[key];
+    }
+  });
+
+  athleteData[editingAthlete].timestamps = stamps;
+  setDoc(doc(db, 'sessions', currentSession.id, 'athletes', editingAthlete), { timestamps: stamps });
+  closeEditModal();
+};
+
+// ─── Confirm Dialog ────────────────────────────────────────────────────────
+function showConfirm(title, msg, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  confirmCallback = onOk;
+  document.getElementById('confirm-dialog').classList.add('open');
+}
+window.confirmOk = function() {
+  document.getElementById('confirm-dialog').classList.remove('open');
+  if (confirmCallback) confirmCallback();
+  confirmCallback = null;
+};
+window.confirmCancel = function() {
+  document.getElementById('confirm-dialog').classList.remove('open');
+  confirmCallback = null;
+};
+
+// ─── Nav ───────────────────────────────────────────────────────────────────
+window.showScreen = function(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'results') renderResults();
+  if (name === 'setup') loadSavedSessions();
+};
+
+// ─── Race Clock ────────────────────────────────────────────────────────────
+function startClock() {
+  if (clockInterval) return;
+  clockInterval = setInterval(() => {
+    if (!raceStartTime) return;
+    document.getElementById('race-clock').textContent = fmtDuration(Date.now() - raceStartTime);
+  }, 1000);
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+function slugify(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+}
+
+function fmtDuration(ms) {
+  if (!ms || ms < 0) return '--:--';
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`;
+  return `${pad(m)}:${pad(sec)}`;
+}
+
+function fmtAbsolute(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function msToTimeInput(ms) {
+  const d = new Date(ms);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function msToDateInput(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+// Init
+showScreen('race');
+</script>
+</body>
+</html>
