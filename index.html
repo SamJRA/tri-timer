@@ -283,7 +283,17 @@ function initFirebase(config) {
 document.getElementById('fb-save-btn').addEventListener('click', () => {
   const raw = document.getElementById('fb-config-input').value.trim();
   let config = null;
-  try { const m = raw.match(/\{[\s\S]*\}/); if(m) config = JSON.parse(m[0]); } catch(e){}
+  try {
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (m) {
+      // Convert JS object literal to JSON (quote unquoted keys, remove trailing commas)
+      const jsonStr = m[0]
+        .replace(/\/\/.*$/gm, '')           // strip // comments
+        .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')  // quote unquoted keys
+        .replace(/,\s*([}\]])/g, '$1');     // remove trailing commas
+      config = JSON.parse(jsonStr);
+    }
+  } catch(e) { console.log('Parse error:', e); }
   if (!config || !config.apiKey) {
     setStatus('Could not parse — paste the full config object', 'var(--danger)'); return;
   }
