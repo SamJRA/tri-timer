@@ -111,8 +111,9 @@
 <div id="screen-setup" class="screen active">
   <div class="section-label" style="margin-top:16px">Firebase config</div>
   <div class="firebase-note">
-    Get your config from <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> →
-    Project Settings → Your apps → SDK setup → Config. Paste the whole block below.
+    Paste your config once and it's saved in this browser permanently. Get it from
+    <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> →
+    Project Settings → Your apps → SDK setup → Config.
   </div>
   <textarea id="fb-config-input" placeholder='Paste firebaseConfig = { apiKey: "...", ... } here'
     style="width:100%;height:90px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:monospace;font-size:12px;padding:10px;border-radius:var(--radius-sm);outline:none;resize:none;margin-bottom:8px;display:block"></textarea>
@@ -280,17 +281,24 @@ function initFirebase(config) {
   }
 }
 
+
+
+// Auto-init from localStorage if config was previously saved
+const savedConfig = localStorage.getItem('tri_fb');
+if (savedConfig) {
+  try { initFirebase(JSON.parse(savedConfig)); } catch(e) {}
+}
+
 document.getElementById('fb-save-btn').addEventListener('click', () => {
   const raw = document.getElementById('fb-config-input').value.trim();
   let config = null;
   try {
     const m = raw.match(/\{[\s\S]*\}/);
     if (m) {
-      // Convert JS object literal to JSON (quote unquoted keys, remove trailing commas)
       const jsonStr = m[0]
-        .replace(/\/\/.*$/gm, '')           // strip // comments
-        .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')  // quote unquoted keys
-        .replace(/,\s*([}\]])/g, '$1');     // remove trailing commas
+        .replace(/\/\/.*$/gm, '')
+        .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')
+        .replace(/,\s*([}\]])/g, '$1');
       config = JSON.parse(jsonStr);
     }
   } catch(e) { console.log('Parse error:', e); }
@@ -298,20 +306,11 @@ document.getElementById('fb-save-btn').addEventListener('click', () => {
     setStatus('Could not parse — paste the full config object', 'var(--danger)'); return;
   }
   localStorage.setItem('tri_fb', JSON.stringify(config));
+  setStatus('✓ Config saved permanently in this browser', 'var(--run)');
   initFirebase(config);
 });
 
-// Auto-restore saved config
-const saved = localStorage.getItem('tri_fb');
-if (saved) {
-  try {
-    const c = JSON.parse(saved);
-    document.getElementById('fb-config-input').value = JSON.stringify(c, null, 2);
-    initFirebase(c);
-  } catch(e) {}
-}
 
-// ── Setup ──────────────────────────────────────────────────────────────────
 function renderAthleteList() {
   document.getElementById('athlete-list').innerHTML = pendingAthletes.map(n =>
     `<div class="athlete-chip"><span>${n}</span>
