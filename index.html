@@ -109,17 +109,7 @@
 
 <!-- SETUP -->
 <div id="screen-setup" class="screen active">
-  <div class="section-label" style="margin-top:16px">Firebase config</div>
-  <div class="firebase-note">
-    Paste your config once and it's saved in this browser permanently. Get it from
-    <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> →
-    Project Settings → Your apps → SDK setup → Config.
-  </div>
-  <textarea id="fb-config-input" placeholder='Paste firebaseConfig = { apiKey: "...", ... } here'
-    style="width:100%;height:90px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:monospace;font-size:12px;padding:10px;border-radius:var(--radius-sm);outline:none;resize:none;margin-bottom:8px;display:block"></textarea>
-  <button class="btn btn-accent" style="width:100%" id="fb-save-btn">Save Firebase Config</button>
-  <div id="fb-status"></div>
-
+  <div id="fb-status" style="padding-top:16px"></div>
   <hr class="divider">
   <div class="section-label">New race session</div>
   <div class="input-row">
@@ -283,34 +273,18 @@ function initFirebase(config) {
 
 
 
-// Auto-init from localStorage if config was previously saved
-const savedConfig = localStorage.getItem('tri_fb');
-if (savedConfig) {
-  try { initFirebase(JSON.parse(savedConfig)); } catch(e) {}
-}
-
-document.getElementById('fb-save-btn').addEventListener('click', () => {
-  const raw = document.getElementById('fb-config-input').value.trim();
-  let config = null;
-  try {
-    const m = raw.match(/\{[\s\S]*\}/);
-    if (m) {
-      const jsonStr = m[0]
-        .replace(/\/\/.*$/gm, '')
-        .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')
-        .replace(/,\s*([}\]])/g, '$1');
-      config = JSON.parse(jsonStr);
-    }
-  } catch(e) { console.log('Parse error:', e); }
-  if (!config || !config.apiKey) {
-    setStatus('Could not parse — paste the full config object', 'var(--danger)'); return;
-  }
-  localStorage.setItem('tri_fb', JSON.stringify(config));
-  setStatus('✓ Config saved permanently in this browser', 'var(--run)');
-  initFirebase(config);
+// Hardcoded Firebase config — no manual entry needed
+initFirebase({
+  apiKey: "AIzaSyCQ34KVK9K4xuUeLasplnflpJPREBd7TzE",
+  authDomain: "tri-timer.firebaseapp.com",
+  projectId: "tri-timer",
+  storageBucket: "tri-timer.firebasestorage.app",
+  messagingSenderId: "1099213619804",
+  appId: "1:1099213619804:web:b43c4b9f9734bd85e5dc99",
+  measurementId: "G-XXY2EH5QJ6"
 });
 
-
+// ── Setup ──────────────────────────────────────────────────────────────────
 function renderAthleteList() {
   document.getElementById('athlete-list').innerHTML = pendingAthletes.map(n =>
     `<div class="athlete-chip"><span>${n}</span>
