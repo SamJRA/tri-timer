@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Try a Tri — Athlete Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:  #0D0D0D;
+    --white:  #FFFFFF;
+    --aqua:   #00C4CC;
+    --aqua2:  #E0F9FA;
+    --grey:   #767676;
+    --lgrey:  #EBEBEB;
+    --paper:  #F6F6F4;
+    --ink:    #1C1C1C;
+  }
+
+  body {
+    background: #C0BEBB;
+    font-family: 'Inter', sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 794px;
+    height: 1123px;
+    margin: 28px auto;
+    background: var(--white);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .photo-slot {
+    position: absolute;
+    background: #D8D8D5;
+    overflow: hidden;
+  }
+  .photo-slot img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+  .ph {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px; color: #AAA;
+    font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .ph svg { opacity: 0.3; }
+
+  .eyebrow {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--aqua);
+  }
+  .display {
+    font-family: 'Bebas Neue', sans-serif;
+    line-height: 0.88; letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  .rule { height: 1px; background: var(--lgrey); border: none; margin: 0; }
+  .rule-aqua { height: 2px; background: var(--aqua); border: none; width: 32px; }
+
+  .rh {
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 44px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 44px;
+    border-bottom: 1px solid var(--lgrey);
+    z-index: 10; background: var(--white);
+  }
+  .rh-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px; letter-spacing: 0.12em; color: var(--ink);
+  }
+  .rh-brand em { color: var(--aqua); font-style: normal; }
+  .rh-section {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.22em; text-transform: uppercase; color: var(--grey);
+  }
+
+  .pf {
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 38px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 44px;
+    border-top: 1px solid var(--lgrey);
+    background: var(--white);
+    z-index: 10;
+  }
+  .pf-txt { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #CACACA; }
+  .pf-num { font-family: 'Bebas Neue', sans-serif; font-size: 15px; color: #DCDCDC; }
+
+  .sec-label {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--aqua); margin-bottom: 12px;
+  }
+  .body-txt { font-size: 12px; color: var(--grey); line-height: 1.7; }
+  .body-txt strong { color: var(--ink); font-weight: 600; }
+
+  ul.dlist { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  ul.dlist li {
+    font-size: 12px; color: var(--grey);
+    line-height: 1.5; padding-left: 16px; position: relative;
+  }
+  ul.dlist li::before { content: '—'; position: absolute; left: 0; color: var(--aqua); font-size: 10px; }
+  ul.dlist li strong { color: var(--ink); }
+
+  .sched-row {
+    display: grid; grid-template-columns: 88px 1fr;
+    gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid var(--lgrey); align-items: baseline;
+  }
+  .sched-row:last-child { border-bottom: none; }
+  .st { font-size: 11px; font-weight: 700; color: var(--ink); line-height: 1.4; }
+  .st.hi { color: var(--aqua); }
+  .sd { font-size: 12px; color: var(--grey); line-height: 1.4; }
+  .sd.hi { color: var(--ink); font-weight: 600; }
+
+  .seg-card {
+    display: grid; grid-template-columns: 36px 1fr;
+    gap: 10px; padding: 12px 14px;
+    border: 1px solid var(--lgrey); border-radius: 8px;
+    align-items: start; margin-bottom: 9px;
+  }
+  .seg-card:last-child { margin-bottom: 0; }
+  .sc-icon { font-size: 22px; margin-top: 2px; }
+  .sc-label { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aqua); margin-bottom: 1px; }
+  .sc-dist { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--ink); line-height: 1; margin-bottom: 3px; }
+  .sc-body { font-size: 11px; color: var(--grey); line-height: 1.55; }
+
+  .gear-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .gear-item {
+    background: var(--paper); border-radius: 6px;
+    padding: 9px 13px; font-size: 12px;
+    color: var(--ink); font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .gear-item span { font-size: 15px; }
+
+  .cost-row {
+    display: flex; justify-content: space-between;
+    align-items: baseline; padding: 9px 0;
+    border-bottom: 1px solid var(--lgrey);
+  }
+  .cost-row:last-child { border-bottom: none; }
+  .cost-lbl { font-size: 12px; color: var(--grey); }
+  .cost-amt { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--ink); }
+
+  .accent-pill { background: var(--aqua); border-radius: 10px; padding: 14px 18px; }
+  .accent-pill-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--ink); margin-bottom: 3px; }
+  .accent-pill-body { font-size: 11px; color: #005055; line-height: 1.5; }
+
+  @media print {
+    body { background: none; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+  }
+  @page { size: A4; margin: 0; }
+</style>
+</head>
+<body>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE 1 — COVER
+     Dark. Photo bottom-right, radius top-left.
+════════════════════════════════════════════════════════════════ -->
+<div class="page" style="background:var(--black);">
+
+  <div style="position:absolute;top:0;left:0;right:0;height:44px;
+              display:flex;align-items:center;justify-content:space-between;
+              padding:0 44px;border-bottom:1px solid #222;z-index:10;">
+    <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.12em;color:#fff;">
+      MEGA HOUSE
+    </span>
+    <span style="font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:#555;">
+      Athlete Guide · 2026
+    </span>
+  </div>
+
+  <div style="position:absolute;top:80px;left:44px;z-index:5;">
+    <div class="eyebrow" style="color:var(--aqua);margin-bottom:12px;">
+      Sprint Triathlon · Athlete Guide
+    </div>
+    <div class="display" style="font-size:128px;color:#fff;line-height:.86;">
+      TRY<br>A<br>TRI
+    </div>
+    <div style="margin-top:22px;font-size:13px;font-weight:300;
+                color:#666;letter-spacing:.1em;text-transform:uppercase;">
+      August 8, 2026
+    </div>
+  </div>
+
+  <div style="position:absolute;bottom:0;left:0;right:0;height:82px;
+              border-top:1px solid #1E1E1E;z-index:10;
+              display:grid;grid-template-columns:1fr 1fr 1fr;">
+    <div style="padding:16px 44px;border-right:1px solid #1E1E1E;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--aqua);margin-bottom:2px;">🏊 Swim</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;line-height:1;">750m</div>
+    </div>
+    <div style="padding:16px 28px;border-right:1px solid #1E1E1E;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--aqua);margin-bottom:2px;">🚴 Bike</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;line-height:1;">20km</div>
+    </div>
+    <div style="padding:16px 28px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--aqua);margin-bottom:2px;">🏃 Run</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;line-height:1;">5km</div>
+    </div>
+  </div>
+
+  <div class="photo-slot" style="right:0;top:100px;bottom:82px;width:340px;border-radius:80px 0 0 0;z-index:4;">
+    <!-- ADD PHOTO: <img src="cover.jpg" alt=""> -->
+    <div class="ph">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Cover photo
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE 2 — RACE DAY SCHEDULE
+     Photo top-right, radius bottom-left. Schedule fills left + below.
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="rh"><div class="rh-brand">MEGA HOUSE</div><div class="rh-section">Race Day Schedule</div></div>
+
+  <div class="photo-slot" style="top:44px;right:0;width:370px;height:390px;border-radius:0 0 0 72px;">
+    <!-- ADD PHOTO: <img src="schedule.jpg" alt=""> -->
+    <div class="ph">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Add a photo
+    </div>
+  </div>
+
+  <div style="position:absolute;top:68px;left:44px;width:360px;">
+    <div class="eyebrow" style="margin-bottom:8px;">Schedule</div>
+    <div class="display" style="font-size:64px;color:var(--ink);">Race Day</div>
+    <div class="rule-aqua" style="margin-top:14px;"></div>
+  </div>
+
+  <div style="position:absolute;top:206px;left:44px;right:44px;">
+    <div class="sched-row"><div class="st">9:00</div><div class="sd">Check-in at Mega House</div></div>
+    <div class="sched-row"><div class="st">9:00–9:30</div><div class="sd">T2 setup at Mega House</div></div>
+    <div class="sched-row"><div class="st">9:30–9:40</div><div class="sd">Briefing at Mega House</div></div>
+    <div class="sched-row"><div class="st">9:40–10:00</div><div class="sd">Travel to Rengstorff pool</div></div>
+    <div class="sched-row"><div class="st">10:00–10:20</div><div class="sd">T1 setup at Rengstorff</div></div>
+    <div class="sched-row"><div class="st">10:20–10:30</div><div class="sd">Swim preparation</div></div>
+    <div class="sched-row"><div class="st">10:30</div><div class="sd">Swim start</div></div>
+    <div class="sched-row"><div class="st">11:00</div><div class="sd">Swim cutoff</div></div>
+    <div class="sched-row"><div class="st">11:30–15:00</div><div class="sd">BBQ and post race amenities available</div></div>
+    <div class="sched-row"><div class="st">13:30</div><div class="sd">Race cutoff (we will come find you on the course)</div></div>
+  </div>
+
+  <div class="pf"><div class="pf-txt">Mega House · Try a Tri · August 8, 2026</div><div class="pf-num">02</div></div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE 3 — PREPARATION
+     Photo bottom-left, radius top-right. Content top + right.
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="rh"><div class="rh-brand">MEGA HOUSE</div><div class="rh-section">Preparation</div></div>
+
+  <div class="photo-slot" style="bottom:38px;left:0;width:350px;height:360px;border-radius:0 72px 0 0;">
+    <!-- ADD PHOTO: <img src="prep.jpg" alt=""> -->
+    <div class="ph">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Gear / prep photo
+    </div>
+  </div>
+
+  <!-- top content full width -->
+  <div style="position:absolute;top:68px;left:44px;right:44px;">
+    <div class="eyebrow" style="margin-bottom:8px;">Preparation</div>
+    <div class="display" style="font-size:64px;color:var(--ink);margin-bottom:4px;">Get Ready</div>
+    <div class="rule-aqua" style="margin-bottom:24px;"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+      <div>
+        <div class="sec-label">Required Gear</div>
+        <div class="gear-grid">
+          <div class="gear-item"><span>🩱</span>Swimsuit</div>
+          <div class="gear-item"><span>🥽</span>Goggles</div>
+          <div class="gear-item"><span>🏊</span>Towel</div>
+          <div class="gear-item"><span>🚴</span>Bike</div>
+          <div class="gear-item"><span>⛑️</span>Helmet</div>
+          <div class="gear-item"><span>👟</span>Run shoes</div>
+        </div>
+        <div style="margin-top:18px;">
+          <div class="sec-label">Optional but handy</div>
+          <ul class="dlist">
+            <li>Race belt</li>
+            <li>Bike computer or phone for route</li>
+            <li>Sunscreen</li>
+            <li>Water bottle on the bike</li>
+            <li>Spare tube &amp; mini pump</li>
+            <li>Elastic laces for fast T2</li>
+            <li>Nutrition / gels for the bike</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="body-txt">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</div>
+
+        <div style="margin-top:20px;">
+          <div class="sec-label">Parking</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+            <div style="background:var(--paper);border-radius:8px;padding:12px 14px;">
+              <div style="font-size:10px;font-weight:700;color:var(--ink);margin-bottom:4px;">🏁 Mega House</div>
+              <div class="body-txt" style="font-size:11px;">Park on Wilkie Way — T2 and finish line are here</div>
+            </div>
+            <div style="background:var(--paper);border-radius:8px;padding:12px 14px;">
+              <div style="font-size:10px;font-weight:700;color:var(--ink);margin-bottom:4px;">🏊 Pool Start</div>
+              <div class="body-txt" style="font-size:11px;">Rengstorff Park Aquatic Center — use the regular pool parking lot</div>
+            </div>
+          </div>
+          <div class="sec-label">Cost</div>
+          <div class="cost-row"><span class="cost-lbl">Pool entry</span><span class="cost-amt">$7</span></div>
+          <div class="cost-row"><span class="cost-lbl">Food &amp; drinks at finish</span><span class="cost-amt">$15</span></div>
+          <div style="margin-top:18px;">
+            <div class="sec-label">Setup</div>
+            <div class="body-txt">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pf"><div class="pf-txt">Mega House · Try a Tri · August 8, 2026</div><div class="pf-num">03</div></div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE 4 — COURSE: SWIM + T1
+     Photo right column full height, radius both left corners.
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="rh"><div class="rh-brand">MEGA HOUSE</div><div class="rh-section">Course — Swim &amp; T1</div></div>
+
+  <div class="photo-slot" style="top:44px;right:0;bottom:38px;width:310px;border-radius:64px 0 0 64px;">
+    <img src="pics/pool_from_above.png" alt="Rengstorff Pool">
+    <div class="ph">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Swim / pool photo
+    </div>
+  </div>
+
+  <div style="position:absolute;top:68px;left:44px;right:330px;bottom:56px;display:flex;flex-direction:column;">
+    <div class="eyebrow" style="margin-bottom:8px;">Course — Segment 1</div>
+    <div class="display" style="font-size:72px;color:var(--ink);">Swim<br>&amp; T1</div>
+    <div class="rule-aqua" style="margin:12px 0 24px;"></div>
+
+    <div class="sec-label">🏊 Swim — 750m</div>
+    <div class="body-txt" style="margin-bottom:16px;">
+      Pool swim at Rengstorff Park Aquatic Center. This is a mass start — everyone enters the water together at 10:00 AM sharp.
+      <!-- ADD: lane assignments, swim format (continuous laps), any other pool details -->
+    </div>
+    <ul class="dlist" style="margin-bottom:24px;">
+      <li><!-- ADD: specific swim details, e.g. number of lengths, lane setup --></li>
+      <li><!-- ADD: any pool rules --></li>
+    </ul>
+
+    <hr class="rule" style="margin-bottom:20px;">
+
+    <div class="sec-label">T1 — Pool to Bike</div>
+    <div class="body-txt" style="margin-bottom:14px;">
+      T1 is poolside at Rengstorff Park — same location as the swim start. Your bike is racked here before the race.
+    </div>
+    <ul class="dlist" style="margin-bottom:20px;">
+      <li>Exit the pool, head to your racked bike</li>
+      <li><strong>Helmet on before touching your bike</strong></li>
+      <li>Swap footwear if needed</li>
+      <li>Roll to the mount line, then go</li>
+    </ul>
+  </div>
+
+  <div class="pf"><div class="pf-txt">Mega House · Try a Tri · August 8, 2026</div><div class="pf-num">04</div></div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE 5 — COURSE: BIKE + T2
+     Photo top-left, radius bottom-right. Content fills right + below.
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="rh"><div class="rh-brand">MEGA HOUSE</div><div class="rh-section">Course — Bike &amp; T2</div></div>
+
+  <div class="photo-slot" style="top:44px;left:0;width:360px;height:400px;border-radius:0 0 72px 0;">
+    <!-- ADD PHOTO: <img src="bike.jpg" alt=""> -->
+    <div class="ph">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Bike route photo
+    </div>
+  </div>
+
+  <!-- right column top -->
+  <div style="position:absolute;top:68px;left:390px;right:44px;">
+    <div class="eyebrow" style="margin-bottom:8px;">Course — Segment 2</div>
+    <div class="display" style="font-size:66px;color:var(--ink);">Bike<br>&amp; T2</div>
+    <div class="rule-aqua" style="margin:12px 0 20px;"></div>
+
+    <div class="sec-label">🚴 Bike — 20km</div>
+    <div class="body-txt" style="margin-bottom:12px;">
+      Point-to-point from Rengstorff Park to Mega House on shared roads. Ride defensively — normal traffic applies.
+    </div>
+    <ul class="dlist">
+      <li>Route: <a href="https://ridewithgps.com/routes/55422565" style="color:var(--aqua);">ridewithgps.com/routes/55422565</a> — see Appendix A for photos of the route</li>
+      <li><!-- ADD: any notable climbs, turns, hazards --></li>
+      <li>Bring a water bottle — no aid stations on course</li>
+    </ul>
+  </div>
+
+  <!-- below photo — full width -->
+  <div style="position:absolute;top:474px;left:44px;right:44px;bottom:56px;">
+    <hr class="rule" style="margin-bottom:20px;">
+    <div>
+      <div class="sec-label">T2 — Bike to Run</div>
+      <div class="body-txt" style="margin-bottom:12px;">
+        T2 is at Mega House — also the finish line. Arrive by bike, rack up, and head straight out on the run.
+      </div>
+      <ul class="dlist">
+        <li>Dismount before the dismount line</li>
+        <li>Rack your bike</li>
+        <li>Swap to running shoes</li>
+        <li>Head out on the 5km run loop</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="pf"><div class="pf-txt">Mega House · Try a Tri · August 8, 2026</div><div class="pf-num">05</div></div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE 6 — COURSE: RUN
+     Photo bottom-right, radius top-left. Content top-left.
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="rh"><div class="rh-brand">MEGA HOUSE</div><div class="rh-section">Course — Run</div></div>
+
+  <div class="photo-slot" style="bottom:38px;right:0;width:420px;height:440px;border-radius:72px 0 0 0;">
+    <!-- ADD PHOTO: <img src="run.jpg" alt=""> -->
+    <div class="ph">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Run route photo
+    </div>
+  </div>
+
+  <div style="position:absolute;top:68px;left:44px;right:44px;">
+    <div class="eyebrow" style="margin-bottom:8px;">Course — Segment 3</div>
+    <div class="display" style="font-size:90px;color:var(--ink);">Run</div>
+    <div class="rule-aqua" style="margin:12px 0 20px;"></div>
+  </div>
+
+  <div style="position:absolute;top:190px;left:44px;width:330px;">
+    <div class="sec-label">🏃 Run — 5km</div>
+    <div class="body-txt" style="margin-bottom:16px;">
+      A loop around the Mega House neighborhood, starting and finishing at Mega House.
+      <!-- ADD: route description, landmarks, any turns to know -->
+    </div>
+    <ul class="dlist" style="margin-bottom:20px;">
+      <li>Route: <a href="https://ridewithgps.com/routes/55422767" style="color:var(--aqua);">ridewithgps.com/routes/55422767</a> — see Appendix A for photos of the route</li>
+      <li><!-- ADD: any hills, surface notes --></li>
+      <li>Finish line is back at Mega House</li>
+    </ul>
+
+    <hr class="rule" style="margin-bottom:18px;">
+
+    <div class="sec-label">Timing</div>
+    <div class="body-txt" style="margin-bottom:18px;">
+      All five segments are timed — Swim, T1, Bike, T2, and Run. Your splits appear on the live leaderboard as soon as you complete each one. Overall results are ranked by total finish time.
+    </div>
+
+    <div style="background:var(--paper);border-radius:10px;padding:14px 16px;">
+      <div class="sec-label" style="margin-bottom:6px;">3-Hour Cutoff</div>
+      <div class="body-txt">Race starts at 10:00 AM. All athletes must finish by 1:00 PM.</div>
+    </div>
+  </div>
+
+  <div class="pf"><div class="pf-txt">Mega House · Try a Tri · August 8, 2026</div><div class="pf-num">06</div></div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE 7 — FINISH
+     Photo large bottom-right, radius top-left. Content top-left.
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="rh"><div class="rh-brand">MEGA HOUSE</div><div class="rh-section">After the Finish</div></div>
+
+  <div class="photo-slot" style="bottom:38px;right:0;width:500px;height:520px;border-radius:96px 0 0 0;">
+    <!-- ADD PHOTO: <img src="finish.jpg" alt=""> -->
+    <div class="ph">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Post-race photo
+    </div>
+  </div>
+
+  <div style="position:absolute;top:68px;left:44px;right:44px;">
+    <div class="eyebrow" style="margin-bottom:10px;">After the Finish Line</div>
+    <div class="display" style="font-size:82px;color:var(--ink);line-height:.88;">Finish</div>
+    <div class="rule-aqua" style="margin-top:16px;"></div>
+  </div>
+
+  <div style="position:absolute;top:210px;left:44px;width:255px;">
+    <div class="body-txt" style="margin-bottom:18px;">
+      Cross the finish line at Mega House. Recover, refuel, and celebrate with everyone who made it through.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--paper);border-radius:8px;">
+        <span style="font-size:20px;">🍔</span><span style="font-size:12px;font-weight:600;color:var(--ink);">Food</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--paper);border-radius:8px;">
+        <span style="font-size:20px;">🍺</span><span style="font-size:12px;font-weight:600;color:var(--ink);">Drinks</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--paper);border-radius:8px;">
+        <span style="font-size:20px;">🧖</span><span style="font-size:12px;font-weight:600;color:var(--ink);">Sauna</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--paper);border-radius:8px;">
+        <span style="font-size:20px;">🧊</span><span style="font-size:12px;font-weight:600;color:var(--ink);">Cold Plunge</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;bottom:56px;left:44px;width:255px;z-index:5;">
+    <div style="font-size:11px;font-style:italic;color:#BBBBBB;line-height:1.7;">
+      See you on race day.<br>Have fun out there.
+    </div>
+  </div>
+
+  <div class="pf"><div class="pf-txt">Mega House · Try a Tri · August 8, 2026</div><div class="pf-num">07</div></div>
+</div>
+
+
+</body>
+</html>
