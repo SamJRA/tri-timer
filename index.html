@@ -42,15 +42,25 @@
   .session-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:pointer}
   .session-name{font-size:15px;font-weight:bold;margin-bottom:4px}
   .session-meta{font-size:12px;color:var(--muted)}
-  #mass-start-bar{background:var(--accent);color:#000;border-radius:var(--radius);padding:14px;text-align:center;font-weight:bold;font-size:16px;letter-spacing:.08em;cursor:pointer;margin-bottom:16px;touch-action:manipulation}
-  #mass-start-bar.done{background:var(--surface);color:var(--muted);border:1px solid var(--border);cursor:default;font-size:13px}
+  #start-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px}
+  #start-panel.hidden{display:none}
+  #start-status{margin-bottom:12px}
+  #mass-start-btn{margin-bottom:8px;width:100%;font-size:15px;padding:14px}
+  #wave-start-btn{width:100%;font-size:14px;padding:13px}
+  #wave-start-btn:not(:disabled){background:var(--swim);color:#000;border-color:var(--swim);font-weight:bold}
   .athlete-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
-  .card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)}
+  .athlete-card.selectable{border-color:#3a4a5a}
+  .athlete-card.selected{border-color:var(--swim)}
+  .card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);gap:10px}
+  .card-header-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+  .start-check{width:20px;height:20px;accent-color:var(--swim);cursor:pointer;flex-shrink:0}
   .athlete-name{font-size:16px;font-weight:bold;letter-spacing:.03em}
   .athlete-status{font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
   .athlete-status.swim{color:var(--swim)}.athlete-status.t1{color:var(--accent)}
   .athlete-status.bike{color:var(--bike)}.athlete-status.t2{color:var(--accent)}
-  .athlete-status.run{color:var(--run)}.athlete-status.done{color:var(--muted)}
+  .athlete-status.run{color:var(--run)}.athlete-status.done{color:var(--muted)}.athlete-status.dns{color:var(--muted)}
+  .results-table tr.row-dns td{color:var(--muted);font-style:italic}
+  .results-table tr.row-racing td{color:var(--muted)}
   .splits-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
   .split-cell{background:var(--surface);padding:8px 4px;text-align:center}
   .split-label{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
@@ -136,7 +146,11 @@
 
 <!-- RACE -->
 <div id="screen-race" class="screen">
-  <div id="mass-start-bar">⬤ MASS START SWIM</div>
+  <div id="start-panel" class="hidden">
+    <div id="start-status" class="section-label"></div>
+    <button id="mass-start-btn" class="btn btn-accent">⬤ MASS START ALL WAITING</button>
+    <button id="wave-start-btn" class="btn" disabled>START SWIM — 0 selected</button>
+  </div>
   <div id="athlete-cards"></div>
 </div>
 
@@ -179,7 +193,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteField }
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -192,6 +206,7 @@ let raceStartTime = null;
 let confirmCb = null;
 let editingAid = null;
 let pendingAthletes = [];
+let selectedForStart = new Set();
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
@@ -344,6 +359,7 @@ async function loadSavedSessions() {
 
 function loadSession(s) {
   session = s;
+  selectedForStart = new Set();
   if (unsub) unsub();
   athleteData = {};
   s.athletes.forEach(name => { athleteData[slug(name)] = { name, timestamps:{} }; });
@@ -354,29 +370,78 @@ function loadSession(s) {
   renderRace(); showScreen('race');
 }
 
+function getWaitingAids() {
+  return session.athletes
+    .map(name => slug(name))
+    .filter(aid => !athleteData[aid]?.timestamps?.swimStart);
+}
+
+async function startSwim(aids) {
+  const now = Date.now();
+  for (const aid of aids) {
+    if (athleteData[aid]?.timestamps?.swimStart) continue;
+    if (!athleteData[aid]) continue;
+    athleteData[aid].timestamps = { ...athleteData[aid].timestamps, swimStart: now };
+    await setDoc(doc(db,'sessions',session.id,'athletes',aid), { timestamps: athleteData[aid].timestamps });
+    selectedForStart.delete(aid);
+  }
+}
+
 // ── Race ───────────────────────────────────────────────────────────────────
 function renderRace() {
-  if (!session) return;
-  const msBar = document.getElementById('mass-start-bar');
-  const anyStarted = Object.values(athleteData).some(a => a.timestamps.swimStart);
-  if (anyStarted) {
-    raceStartTime = Object.values(athleteData).find(a=>a.timestamps.swimStart).timestamps.swimStart;
-    msBar.className = 'done';
-    msBar.textContent = '⬤ Race started · ' + fmtAbs(raceStartTime);
+  const cardsEl = document.getElementById('athlete-cards');
+  const panelEl = document.getElementById('start-panel');
+
+  if (!session) {
+    panelEl.classList.add('hidden');
+    cardsEl.innerHTML = '<div class="empty-state">Load or create a session in Setup</div>';
+    raceStartTime = null;
+    document.getElementById('race-clock').textContent = '--:--:--';
+    return;
+  }
+
+  const waiting = getWaitingAids();
+  const started = session.athletes.length - waiting.length;
+
+  const earliestStart = Object.values(athleteData)
+    .map(a => a.timestamps?.swimStart)
+    .filter(Boolean)
+    .sort((a, b) => a - b)[0];
+
+  if (earliestStart) {
+    raceStartTime = earliestStart;
     startClock();
   } else {
-    raceStartTime = null; msBar.className = ''; msBar.textContent = '⬤ MASS START SWIM';
+    raceStartTime = null;
+    document.getElementById('race-clock').textContent = '--:--:--';
   }
+
+  if (waiting.length) {
+    panelEl.classList.remove('hidden');
+    document.getElementById('start-status').textContent =
+      `${started} of ${session.athletes.length} started · ${waiting.length} waiting`;
+    document.getElementById('mass-start-btn').disabled = false;
+    const selCount = [...selectedForStart].filter(aid => waiting.includes(aid)).length;
+    const waveBtn = document.getElementById('wave-start-btn');
+    waveBtn.disabled = selCount === 0;
+    waveBtn.textContent = `START SWIM — ${selCount} selected`;
+  } else {
+    panelEl.classList.add('hidden');
+  }
+
+  [...selectedForStart].forEach(aid => { if (!waiting.includes(aid)) selectedForStart.delete(aid); });
 
   const segLabels = session.transitions ? ['SWIM','T1','BIKE','T2','RUN'] : ['SWIM','–','BIKE','–','RUN'];
 
-  document.getElementById('athlete-cards').innerHTML = session.athletes.map(name => {
+  cardsEl.innerHTML = session.athletes.map(name => {
     const aid = slug(name);
     const stamps = athleteData[aid]?.timestamps || {};
     const status = getStatus(stamps);
     const splits = getSplits(stamps);
     const btn = NEXT_LABEL[status];
     const activeIdx = STATUS_IDX[status];
+    const isWaiting = status === 'waiting';
+    const isSelected = isWaiting && selectedForStart.has(aid);
 
     const cells = segLabels.map((lbl,i) => {
       const val = splits[i];
@@ -384,9 +449,14 @@ function renderRace() {
       return `<div class="split-cell"><div class="split-label">${lbl}</div><div class="${cls}">${val||(i===activeIdx?'···':'–')}</div></div>`;
     }).join('');
 
-    return `<div class="athlete-card">
+    const cardCls = 'athlete-card' + (isWaiting ? ' selectable' : '') + (isSelected ? ' selected' : '');
+
+    return `<div class="${cardCls}" data-aid="${aid}">
       <div class="card-header">
-        <div class="athlete-name">${name}</div>
+        <div class="card-header-left">
+          ${isWaiting ? `<input type="checkbox" class="start-check" data-aid="${aid}" ${isSelected?'checked':''} aria-label="Select for wave start">` : ''}
+          <div class="athlete-name">${name}</div>
+        </div>
         <div class="athlete-status ${status}">${status==='waiting'?'WAITING':status.toUpperCase()}</div>
       </div>
       <div class="splits-row">${cells}</div>
@@ -399,6 +469,14 @@ function renderRace() {
     </div>`;
   }).join('');
 
+  document.querySelectorAll('.start-check').forEach(cb =>
+    cb.addEventListener('change', () => {
+      const aid = cb.dataset.aid;
+      if (cb.checked) selectedForStart.add(aid);
+      else selectedForStart.delete(aid);
+      renderRace();
+    })
+  );
   document.querySelectorAll('.btn-next[data-aid]').forEach(btn =>
     btn.addEventListener('click', () => logNext(btn.dataset.aid))
   );
@@ -418,17 +496,22 @@ async function logNext(aid) {
   await setDoc(doc(db,'sessions',session.id,'athletes',aid), { timestamps: stamps });
 }
 
-document.getElementById('mass-start-bar').addEventListener('click', () => {
+document.getElementById('mass-start-btn').addEventListener('click', () => {
   if (!session) return;
-  if (Object.values(athleteData).some(a=>a.timestamps.swimStart)) return;
-  showConfirm('Mass start swim?', 'Sets swim start for all athletes to right now.', async () => {
-    const now = Date.now();
-    for (const name of session.athletes) {
-      const aid = slug(name);
-      if (!athleteData[aid]) athleteData[aid] = { name, timestamps:{} };
-      athleteData[aid].timestamps = { ...athleteData[aid].timestamps, swimStart: now };
-      await setDoc(doc(db,'sessions',session.id,'athletes',aid), { timestamps: athleteData[aid].timestamps });
-    }
+  const waiting = getWaitingAids();
+  if (!waiting.length) return;
+  showConfirm('Mass start swim?', `Sets swim start for ${waiting.length} waiting athlete${waiting.length===1?'':'s'} right now.`, async () => {
+    await startSwim(waiting);
+  });
+});
+
+document.getElementById('wave-start-btn').addEventListener('click', () => {
+  if (!session) return;
+  const aids = [...selectedForStart].filter(aid => getWaitingAids().includes(aid));
+  if (!aids.length) return;
+  const names = aids.map(aid => athleteData[aid]?.name || aid).join(', ');
+  showConfirm('Start swim wave?', `Sets swim start for: ${names}`, async () => {
+    await startSwim(aids);
   });
 });
 
@@ -491,28 +574,60 @@ document.getElementById('edit-save-btn').addEventListener('click', async () => {
 function renderResults() {
   if (!session) return;
   document.getElementById('results-label').textContent = session.name + ' — Results';
+
+  const CATEGORY_ORDER = { finished: 0, racing: 1, dns: 2 };
+
   const rows = session.athletes.map(name => {
     const aid = slug(name);
     const stamps = athleteData[aid]?.timestamps || {};
     const splits = getSplits(stamps);
-    const totalMs = (stamps.swimStart && stamps.runEnd) ? stamps.runEnd - stamps.swimStart : Infinity;
-    return { name, splits, total: totalMs < Infinity ? fmtDur(totalMs) : null, totalMs };
-  }).sort((a,b) => a.totalMs - b.totalMs);
+    let category, totalMs, total;
+    if (!stamps.swimStart) {
+      category = 'dns'; totalMs = Infinity; total = null;
+    } else if (!stamps.runEnd) {
+      category = 'racing'; totalMs = Infinity; total = null;
+    } else {
+      category = 'finished';
+      totalMs = stamps.runEnd - stamps.swimStart;
+      total = fmtDur(totalMs);
+    }
+    return { name, splits, total, totalMs, category };
+  }).sort((a, b) => {
+    if (CATEGORY_ORDER[a.category] !== CATEGORY_ORDER[b.category])
+      return CATEGORY_ORDER[a.category] - CATEGORY_ORDER[b.category];
+    if (a.category === 'finished') return a.totalMs - b.totalMs;
+    return 0;
+  });
 
-  if (rows.every(r=>!r.total)) {
-    document.getElementById('results-content').innerHTML = '<div class="empty-state">Results appear as athletes finish</div>'; return;
+  if (rows.every(r => r.category === 'dns')) {
+    document.getElementById('results-content').innerHTML = '<div class="empty-state">Results appear once athletes start and finish</div>';
+    return;
   }
 
   const ths = session.transitions
     ? ['#','Athlete','Swim','T1','Bike','T2','Run','Total']
     : ['#','Athlete','Swim','Bike+T1','Run+T2','Total'];
 
-  const trows = rows.map((r,i) => {
-    const rc = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+  let rank = 0;
+  const trows = rows.map(r => {
+    const rowCls = r.category === 'dns' ? 'row-dns' : r.category === 'racing' ? 'row-racing' : '';
+    let rankCell, rc = '';
+    if (r.category === 'finished') {
+      rank++;
+      rankCell = rank;
+      rc = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : '';
+    } else if (r.category === 'dns') {
+      rankCell = 'DNS';
+    } else {
+      rankCell = '–';
+    }
     const vals = session.transitions
       ? [...r.splits, r.total]
       : [r.splits[0], r.splits[2], r.splits[4], r.total];
-    return `<tr><td class="${rc}">${r.total?i+1:'–'}</td><td class="${rc}">${r.name}</td>${vals.map(v=>`<td>${v||'–'}</td>`).join('')}</tr>`;
+    const displayVals = r.category === 'dns'
+      ? vals.map(() => '–')
+      : vals.map(v => v || '–');
+    return `<tr class="${rowCls}"><td class="${rc}">${rankCell}</td><td class="${rc}">${r.name}</td>${displayVals.map(v=>`<td>${v}</td>`).join('')}</tr>`;
   }).join('');
 
   document.getElementById('results-content').innerHTML =
@@ -544,6 +659,7 @@ function showScreen(name) {
   document.getElementById('nav-'+name).classList.add('active');
   if (name==='results') renderResults();
   if (name==='setup') loadSavedSessions();
+  if (name==='race') renderRace();
 }
 document.getElementById('nav-setup').addEventListener('click', ()=>showScreen('setup'));
 document.getElementById('nav-race').addEventListener('click', ()=>showScreen('race'));
